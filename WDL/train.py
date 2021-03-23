@@ -8,7 +8,7 @@ train model
 """
 
 import tensorflow as tf
-from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.callbacks import EarlyStopping, TensorBoard
 from tensorflow.keras.losses import binary_crossentropy
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.metrics import AUC
@@ -23,14 +23,15 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 if __name__ == '__main__':
     # =============================== GPU ==============================
-    # gpu = tf.config.experimental.list_physical_devices(device_type='GPU')
-    # print(gpu)
-    os.environ['CUDA_VISIBLE_DEVICES'] = '2, 3'
+    gpu = tf.config.experimental.list_physical_devices(device_type='GPU')
+    print(gpu)
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+   print(gpu)
     # ========================= Hyper Parameters =======================
     # you can modify your file path
-    file = '../dataset/Criteo/train.txt'
+    file = '~/Documents/dataset/criteo/train.txt'
     read_part = True
-    sample_num = 5000000
+    sample_num = 50000 # 5000000
     test_size = 0.2
 
     embed_dim = 8
@@ -58,17 +59,19 @@ if __name__ == '__main__':
         model.compile(loss=binary_crossentropy, optimizer=Adam(learning_rate=learning_rate),
                       metrics=[AUC()])
     # ============================model checkpoint======================
-    # check_path = '../save/wide_deep_weights.epoch_{epoch:04d}.val_loss_{val_loss:.4f}.ckpt'
-    # checkpoint = tf.keras.callbacks.ModelCheckpoint(check_path, save_weights_only=True,
-    #                                                 verbose=1, period=5)
+    check_path = './save/wide_deep_weights.epoch_{epoch:04d}.val_loss_{val_loss:.4f}.ckpt'
+    checkpoint = tf.keras.callbacks.ModelCheckpoint(check_path, save_weights_only=True,
+                                                    verbose=1, period=5)
+    # ============================tensorboard========================
+    tbCallBack = TensorBoard(log_dir="./log_dir")
     # ==============================Fit==============================
     model.fit(
         train_X,
         train_y,
         epochs=epochs,
-        callbacks=[EarlyStopping(monitor='val_loss', patience=1, restore_best_weights=True)],  # checkpoint
+        callbacks=[EarlyStopping(monitor='val_loss', patience=1, restore_best_weights=True), checkpoint, tbCallBack],  # checkpoint
         batch_size=batch_size,
-        validation_split=0.1
+        validation_split=0.1,
     )
     # ===========================Test==============================
     print('test AUC: %f' % model.evaluate(test_X, test_y, batch_size=batch_size)[1])
